@@ -1,0 +1,349 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  template: product-page-reviews-template
+metadata:
+  labels:
+    template: ppr-template
+  name: ppr-template
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: details
+    labels:
+      app: details
+      service: details
+  spec:
+    ports:
+    - port: 9080
+      name: http
+    selector:
+      app: details
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: details-v1
+    labels:
+      app: details
+      version: v1
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: details
+        version: v1
+    template:
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
+        labels:
+          app: details
+          version: v1
+      spec:
+        containers:
+        - name: details
+          image: docker.io/maistra/examples-bookinfo-details-v1:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 9080
+        serviceAccountName: bookinfo-details
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: bookinfo-details
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: productpage
+    labels:
+      app: productpage
+      service: productpage
+  spec:
+    ports:
+    - port: 9080
+      name: http
+    selector:
+      app: productpage  
+  
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: productpage-v1
+    labels:
+      app: productpage
+      version: v1
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: productpage
+        version: v1
+    template:
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
+        labels:
+          app: productpage
+          version: v1
+      spec:
+        containers:
+        - name: productpage
+          image: docker.io/maistra/examples-bookinfo-productpage-v1:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 9080
+        serviceAccountName: bookinfo-productpage
+  
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: bookinfo-productpage
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: reviews
+    labels:
+      app: reviews
+      service: reviews
+  spec:
+    ports:
+    - port: 9080
+      name: http
+    selector:
+      app: reviews
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: reviews-v1
+    labels:
+      app: reviews
+      version: v1
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: reviews
+        version: v1
+    template:
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
+        labels:
+          app: reviews
+          version: v1
+      spec:
+        containers:
+        - name: reviews
+          image: docker.io/maistra/examples-bookinfo-reviews-v1:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 9080
+        serviceAccountName: bookinfo-reviews
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: bookinfo-reviews
+- kind: VirtualService
+  apiVersion: networking.istio.io/v1alpha3
+  metadata:
+    name: reviews
+  spec:
+    hosts:
+      - reviews
+    http:
+      - route:
+          - destination:
+              host: reviews
+              subset: v1
+            weight: 70
+          - destination:
+              host: reviews
+              subset: v2
+            weight: 30
+- kind: DestinationRule
+  apiVersion: networking.istio.io/v1alpha3
+  metadata:
+    name: reviews
+  spec:
+    host: reviews
+    subsets:
+      - labels:
+          version: v1
+        name: v1
+      - labels:
+          version: v2
+        name: v2
+      - labels:
+          version: v3
+        name: v3
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: reviews-v2
+    labels:
+      app: reviews
+      version: v2
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: reviews
+        version: v2
+    template:
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
+        labels:
+          app: reviews
+          version: v2
+      spec:
+        containers:
+        - name: reviews
+          image: docker.io/maistra/examples-bookinfo-reviews-v2:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 9080
+        serviceAccountName: bookinfo-reviews
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: reviews-v3
+    labels:
+      app: reviews
+      version: v3
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: reviews
+        version: v3
+    template:
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
+        labels:
+          app: reviews
+          version: v3
+      spec:
+        containers:
+        - name: reviews
+          image: docker.io/maistra/examples-bookinfo-reviews-v3:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 9080
+        serviceAccountName: bookinfo-reviews
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ratings
+    labels:
+      app: ratings
+      service: ratings
+  spec:
+    ports:
+    - port: 9080
+      name: http
+    selector:
+      app: ratings
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: ratings-v1
+    labels:
+      app: ratings
+      version: v1
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: ratings
+        version: v1
+    template:
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
+        labels:
+          app: ratings
+          version: v1
+      spec:
+        containers:
+        - name: ratings
+          image: docker.io/maistra/examples-bookinfo-ratings-v1:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 9080
+        serviceAccountName: bookinfo-ratings
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: bookinfo-ratings
+- kind: VirtualService
+  apiVersion: networking.istio.io/v1alpha3
+  metadata:
+    name: ratings
+  spec:
+    hosts:
+      - ratings
+    http:
+      - route:
+          - destination:
+              host: ratings
+            weight: 100
+- kind: VirtualService
+  apiVersion: networking.istio.io/v1beta1
+  metadata:
+    name: productpage
+    labels:
+      kiali_wizard: request_routing
+  spec:
+    http:
+      - route:
+          - destination:
+              host: productpage.${NAMESPACE}.svc.cluster.local
+              subset: v1
+            weight: 100
+    hosts:
+      - ${ROUTE}
+    gateways:
+      - ${NAMESPACE}/productpage-gateway
+- kind: Gateway
+  apiVersion: networking.istio.io/v1beta1
+  metadata:
+    name: productpage-gateway
+    labels:
+      kiali_wizard: request_routing
+  spec:
+    selector:
+      istio: ingressgateway
+    servers:
+      - port:
+          number: 80
+          name: http
+          protocol: HTTP
+        hosts:
+          - ${ROUTE}
+- kind: DestinationRule
+  apiVersion: networking.istio.io/v1beta1
+  metadata:
+    name: productpage
+    labels:
+      kiali_wizard: request_routing
+    annotations: ~
+  spec:
+    host: productpage.${NAMESPACE}.svc.cluster.local
+    subsets:
+      - name: v1
+        labels:
+          version: v1
+
+parameters:
+
+- description: Route URL for external access
+  name: ROUTE
+  displayName: Route URL for external access
+  required: true
+- description: Project Name
+  name: NAMESPACE
+  displayName: Project Name
+  required: true
